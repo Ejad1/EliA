@@ -1,5 +1,9 @@
 import React, { useState, useRef } from 'react'
 
+// Use Vite env for API base
+const API_BASE = typeof import.meta !== 'undefined' ? (import.meta.env.VITE_API_BASE || '') : ''
+const api = (path) => `${API_BASE}${path}`
+
 // Minimal chat UI. Backend endpoints will be wired later.
 export default function Chat() {
   const [messages, setMessages] = useState([
@@ -25,7 +29,9 @@ export default function Chat() {
 
     try {
       // Call the Python backend endpoint we added at POST /api/chat
-      const res = await fetch('/api/chat', {
+      const url = api('/api/chat')
+      console.debug('[Chat] POST', url, { query: q })
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: q }),

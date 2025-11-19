@@ -122,6 +122,12 @@ body {
 .chat-top.pulse .assistant-emoji { transform: rotate(-8deg) scale(1.06) }
 @keyframes headerBounce { 0% { transform: translateY(0) } 30% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
 .messages { flex:1; padding:18px; overflow:auto; background: linear-gradient(180deg, #ffffff, #f3f8ff) }
+
+/* Fix flexbox shrinking issues that can create unwanted empty space
+   Ensure flex children can shrink and the messages area scrolls properly */
+.chat-window, .messages {
+  min-height: 0;
+}
 .no-convo { text-align:center; color:var(--muted); margin-top:40px }
 
 .msg { display:flex; margin-bottom:12px }
@@ -184,7 +190,8 @@ body {
   .chat-page { padding: 12px; gap: 12px; flex-direction:column }
   .sidebar { width:100%; display:flex; flex-direction:row; gap:10px; overflow:auto }
   .sidebar.closed { display:flex }
-  .chat-window { width:100%; height:calc(100vh - 180px) }
+  /* let the chat-window be flexible on small screens */
+  .chat-window { width:100%; flex: 1 1 auto; min-height: 0 }
   .auth-card { width:92%; }
 }
 
@@ -194,7 +201,7 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvet
 .app-header { padding: 20px; border-bottom: 1px solid #eee; }
 .app-header h1 { margin: 0; font-size: 20px; }
 .subtitle { margin: 4px 0 0; color: #666; font-size: 13px; }
-.chat-shell { display: flex; flex-direction: column; height: 560px; }
+.chat-shell { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .chat-list { flex: 1 1 auto; padding: 16px; overflow: auto; background: linear-gradient(#fff,#fbfdff); }
 .msg { margin-bottom: 12px; display: flex; }
 .msg.assistant { justify-content: flex-start; }

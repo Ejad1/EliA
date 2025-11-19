@@ -23,6 +23,20 @@ export default function ChatPage({ onSignOut }) {
 
   const [activeId, setActiveId] = useState(() => (conversations[0] ? conversations[0].id : null))
 
+  // If there are no conversations create one automatically when the user lands
+  useEffect(() => {
+    if (!conversations || conversations.length === 0) {
+      createConversation()
+    }
+  }, [])
+
+  // Ensure activeId is set when conversations are loaded from storage
+  useEffect(() => {
+    if (!activeId && conversations && conversations[0]) {
+      setActiveId(conversations[0].id)
+    }
+  }, [conversations, activeId])
+
   function createConversation() {
     const id = Date.now().toString()
     const c = { id, title: new Date().toLocaleString(), messages: [] }

@@ -5,6 +5,15 @@ import RecorderButton from './RecorderButton'
 const API_BASE = typeof import.meta !== 'undefined' ? (import.meta.env.VITE_API_BASE || '') : ''
 const api = (path) => `${API_BASE}${path}`
 
+// Prepare a compact, last-N message history for the backend to build
+// context with. Excludes any pending assistant placeholders.
+function prepareMessagesForBackend(conversation, limit = 20) {
+  if (!conversation || !conversation.messages) return []
+  const msgs = conversation.messages.filter((m) => !m.pending)
+  const tail = msgs.slice(-limit)
+  return tail.map((m) => ({ role: m.role, content: m.text, ts: m.ts }))
+}
+
 export default function ChatWindow({ user, conversation, onSend, onReceive, onPendingAssistant, onStartAssistant, onUpdateAssistant }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -139,20 +148,25 @@ export default function ChatWindow({ user, conversation, onSend, onReceive, onPe
 
     // Call backend streaming endpoint and append tokens as they arrive
     try {
-      const res = await fetch(api('/api/chat/stream'), {
+      const url = api('/api/chat/stream')
+      const prepared = prepareMessagesForBackend(conversation, 20)
+      console.debug('[ChatWindow] POST', url, { query: txt, conversation_id: conversation?.id, messages: prepared })
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: txt }),
+        body: JSON.stringify({ query: txt, conversation_id: conversation?.id, messages: prepared }),
       })
 
       if (!res.ok) {
         // If stream endpoint is not found, fallback to non-streaming endpoint
         if (res.status === 404) {
           try {
-                const r2 = await fetch(api('/api/chat'), {
+                const fallbackUrl = api('/api/chat')
+                console.debug('[ChatWindow] fallback POST', fallbackUrl, { query: txt, conversation_id: conversation?.id })
+                const r2 = await fetch(fallbackUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query: txt }),
+              body: JSON.stringify({ query: txt, conversation_id: conversation?.id, messages: prepared }),
             })
             if (r2.ok) {
               const j = await r2.json()
@@ -268,19 +282,22 @@ export default function ChatWindow({ user, conversation, onSend, onReceive, onPe
       const fd = new FormData()
       fd.append('file', blob, 'recording.webm')
       // for now reuse the streaming chat endpoint with a placeholder query
-        const res = await fetch(api('/api/chat/stream'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: '[Audio envoyé]' }),
-      })
+        const prepared = prepareMessagesForBackend(conversation, 20)
+          const audioUrl = api('/api/chat/stream')
+          console.debug('[ChatWindow] audio POST', audioUrl, { conversation_id: conversation?.id, messages: prepared })
+          const res = await fetch(audioUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: '[Audio envoyé]', conversation_id: conversation?.id, messages: prepared }),
+        })
       if (!res.ok) {
         // If stream endpoint missing, fallback to non-streaming endpoint
         if (res.status === 404) {
           try {
-            const r2 = await fetch('/api/chat', {
+            const r2 = await fetch(api('/api/chat'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query: '[Audio envoyé]' }),
+              body: JSON.stringify({ query: '[Audio envoyé]', conversation_id: conversation?.id, messages: prepared }),
             })
             if (r2.ok) {
               const j2 = await r2.json()
